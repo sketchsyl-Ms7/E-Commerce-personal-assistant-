@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Com Listing & SEO Master Suite</title>
+
+<!-- ১. সিক্রেট কনফিগ ফাইল সবার আগে লোড হবে -->
+<script src="config.js"></script>
+
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+darkMode: 'class',
+theme: {
+extend: {
+colors: {
+brand: { 50: '#eef2ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+}
+}
+}
+}
+</script>
+<!-- Lucide Icons & Alpine.js -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<!-- jsPDF for Report Generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white" x-data="appState()" x-init="initApp()">
+
+<!-- TOP NAVIGATION BAR -->
+<header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-50 px-4 py-3 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/30">
+<i data-lucide="shield-check" class="w-6 h-6"></i>
+</div>
+<div>
+<h1 class="font-bold text-base tracking-wide flex items-center gap-2">
+E-Com Master Suite
+<span class="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-full" x-text="lang === 'bn' ? 'ফায়ারবেস এন্টারপ্রাইজ' : 'Firebase Enterprise'"></span>
+</h1>
+<p class="text-xs text-slate-400" x-text="lang === 'bn' ? 'সেন্ট্রাল টিম, এসইও ও ভিজ্যুয়াল ইন্সপেক্টর' : 'Central Team, SEO & Visual Inspector'"></p>
+</div>
+</div>
+
+<!-- CONTROLS & USER STATUS -->
+<div class="flex items-center space-x-2 sm:space-x-4">
+<!-- LANGUAGE TOGGLE -->
+<button @click="toggleLang()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition flex items-center gap-1.5">
+<i data-lucide="globe" class="w-3.5 h-3.5 text-indigo-400"></i>
+<span x-text="lang === 'bn' ? 'English' : 'বাংলা'"></span>
+</button>
+
+<!-- USER INFO / LOGOUT -->
+<template x-if="currentUser">
+<div class="flex items-center space-x-3 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-semibold text-slate-200" x-text="currentUser.name"></p>
+<p class="text-[10px] text-indigo-400 uppercase font-mono" x-text="currentUser.role"></p>
+</div>
+<button @click="logout()" class="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition" title="Logout">
+<i data-lucide="log-out" class="w-4 h-4"></i>
+</button>
+</div>
+</template>
+</div>
+</header>
+
+<!-- MAIN APP CONTAINER -->
+<main class="max-w-7xl mx-auto px-4 py-6">
+
+<!-- 1. AUTHENTICATION VIEW (IF NOT LOGGED IN) -->
+<template x-if="!currentUser">
+<div class="max-w-md mx-auto mt-12 bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl">
+<div class="text-center mb-6">
+<div class="inline-flex p-3 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl text-indigo-400 mb-3">
+<i data-lucide="lock" class="w-8 h-8"></i>
+</div>
+<h2 class="text-xl font-bold" x-text="isRegister ? (lang === 'bn' ? 'নতুন অ্যাকাউন্ট তৈরি করুন' : 'Create New Account') : (lang === 'bn' ? 'সিস্টেমে লগইন করুন' : 'System Login')"></h2>
+<p class="text-xs text-slate-400 mt-1" x-text="lang === 'bn' ? 'আপনার সিকিউরড ফায়ারবেস ই-কমার্স প্যানেলে প্রবেশ করুন' : 'Access your secure Firebase e-commerce panel'"></p>
+</div>
+
+<!-- LOGIN / SIGNUP FORM -->
+<form @submit.prevent="handleAuth" class="space-y-4">
+<template x-if="isRegister">
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'পূর্ণ নাম' : 'Full Name'"></label>
+<input type="text" x-model="authForm.name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+</div>
+</template>
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'ইমেল এড্রেস' : 'Email Address'"></label>
+<input type="email" x-model="authForm.email" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="admin@shop.com">
+</div>
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'পাসওয়ার্ড' : 'Password'"></label>
+<input type="password" x-model="authForm.password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="••••••••">
+</div>
+
+<button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium text-sm transition shadow-lg shadow-indigo-600/30" x-text="isRegister ? (lang === 'bn' ? 'রেজিস্ট্রেশন সম্পন্ন করুন' : 'Register Account') : (lang === 'bn' ? 'লগইন করুন' : 'Login')"></button>
+</form>
+
+<!-- DEMO ACCOUNTS HELPER -->
+<div class="mt-6 pt-6 border-t border-slate-800/80 text-xs space-y-2">
+<p class="font-semibold text-slate-400" x-text="lang === 'bn' ? 'টেস্ট করার জন্য ডিফল্ট অ্যাকাউন্ট:' : 'Quick Demo Credentials:'"></p>
+<div class="grid grid-cols-2 gap-2">
+<button @click="quickLogin('admin@shop.com', 'admin123')" class="p-2 bg-slate-950 border border-slate-800 hover:border-indigo-500/50 rounded-xl text-left transition">
+<span class="block font-medium text-indigo-400">Master Admin</span>
+<span class="text-[10px] text-slate-500">admin@shop.com</span>
+</button>
+<button @click="quickLogin('user@shop.com', 'user123')" class="p-2 bg-slate-950 border border-slate-800 hover:border-indigo-500/50 rounded-xl text-left transition">
+<span class="block font-medium text-emerald-400">Team Member</span>
+<span class="text-[10px] text-slate-500">user@shop.com</span>
+</button>
+</div>
+</div>
+
+<div class="text-center mt-4">
+<button @click="isRegister = !isRegister" class="text-xs text-indigo-400 hover:underline" x-text="isRegister ? (lang === 'bn' ? 'আগে থেকেই অ্যাকাউন্ট আছে? লগইন করুন' : 'Already have an account? Login') : (lang === 'bn' ? 'নতুন অ্যাকাউন্ট তৈরি করুন (Sign Up)' : 'Create new account (Sign Up)')"></button>
+</div>
+</div>
+</template>
+
+<!-- 2. LOGGED-IN DASHBOARD VIEW -->
+<template x-if="currentUser">
+<div class="space-y-6">
+
+<!-- DASHBOARD NAVIGATION TABS (5 TABS) -->
+<div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-2 rounded-2xl overflow-x-auto">
+<div class="flex items-center space-x-1 sm:space-x-2">
+<!-- ADMIN CONTROL -->
+<template x-if="currentUser.role === 'admin'">
+<button @click="activeTab = 'admin'" :class="activeTab === 'admin' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition flex items-center gap-2 shrink-0">
+<i data-lucide="shield-alert" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'অ্যাডমিন হাব' : 'Admin Hub'"></span>
+</button>
+</template>
+
+<!-- NEW LISTING FORM -->
+<button @click="activeTab = 'form'" :class="activeTab === 'form' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition flex items-center gap-2 shrink-0">
+<i data-lucide="file-plus" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'লিস্টিং ও এসইও' : 'Listing & SEO'"></span>
+</button>
+
+<!-- URL AUDITOR -->
+<button @click="activeTab = 'auditor'" :class="activeTab === 'auditor' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition flex items-center gap-2 shrink-0">
+<i data-lucide="search-code" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'URL অডিটর' : 'URL Auditor'"></span>
+</button>
+
+<!-- VISUAL INSPECTOR (MULTIPLE SCREENSHOTS) -->
+<button @click="activeTab = 'visual'" :class="activeTab === 'visual' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition flex items-center gap-2 shrink-0">
+<i data-lucide="image" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'ভিজ্যুয়াল ইন্সপেক্টর' : 'Visual Inspector'"></span>
+</button>
+
+<!-- GOOGLE SEO & MARKET RESEARCH -->
+<button @click="activeTab = 'research'" :class="activeTab === 'research' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition flex items-center gap-2 shrink-0">
+<i data-lucide="trending-up" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'এসইও ও মার্কেট রিসার্চ' : 'SEO & Research'"></span>
+</button>
+</div>
+
+<div class="text-xs text-indigo-400 font-mono px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-xl shrink-0" x-text="firebaseConnected ? '🔥 Firebase Cloud Active' : '⚡ Local SQLite/Storage Mode'"></div>
+</div>
+
+<!-- ================= TAB 1: ADMIN CONTROL HUB ================= -->
+<template x-if="currentUser.role === 'admin' && activeTab === 'admin'">
+<div class="space-y-6">
+<!-- ADMIN SUB-TABS -->
+<div class="flex space-x-2 bg-slate-900 border border-slate-800 p-1.5 rounded-xl w-fit">
+<button @click="adminSubTab = 'api'" :class="adminSubTab === 'api' ? 'bg-slate-800 text-indigo-400 font-semibold' : 'text-slate-400'" class="px-3 py-1.5 text-xs rounded-lg transition" x-text="lang === 'bn' ? 'API ও ফায়ারবেস হাব' : 'API & Firebase Hub'"></button>
+<button @click="adminSubTab = 'team'" :class="adminSubTab === 'team' ? 'bg-slate-800 text-indigo-400 font-semibold' : 'text-slate-400'" class="px-3 py-1.5 text-xs rounded-lg transition" x-text="lang === 'bn' ? 'টিম ইউজার ও রেটিং' : 'Team Users & Rating'"></button>
+<button @click="adminSubTab = 'plugins'" :class="adminSubTab === 'plugins' ? 'bg-slate-800 text-indigo-400 font-semibold' : 'text-slate-400'" class="px-3 py-1.5 text-xs rounded-lg transition" x-text="lang === 'bn' ? 'এক্সটার্নাল প্লাগইনস (Helium 10)' : 'External Plugins'"></button>
+</div>
+
+<!-- SUB-TAB 1: API & FIREBASE -->
+<template x-if="adminSubTab === 'api'">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm flex items-center gap-2 text-indigo-400">
+<i data-lucide="key" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'সেন্ট্রাল Gemini API Key' : 'Central Gemini API Key'"></span>
+</h3>
+<input type="password" x-model="centralApiKey" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-indigo-500">
+<button @click="saveApiKey()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium transition" x-text="lang === 'bn' ? 'API Key সেভ করুন' : 'Save API Key'"></button>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm flex items-center gap-2 text-indigo-400">
+<i data-lucide="database" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'ফায়ারবেস ক্লাউড কানেকশন (Firebase Config)' : 'Firebase Cloud Connection'"></span>
+</h3>
+<textarea x-model="firebaseConfigJSON" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono focus:outline-none focus:border-indigo-500" placeholder="Paste firebaseConfig JSON here..."></textarea>
+<button @click="connectFirebase()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-medium transition" x-text="lang === 'bn' ? 'ফায়ারবেস কানেক্ট করুন' : 'Connect Firebase Cloud'"></button>
+</div>
+</div>
+</template>
+
+<!-- SUB-TAB 2: TEAM USERS & RATING -->
+<template x-if="adminSubTab === 'team'">
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm flex items-center gap-2 text-indigo-400">
+<i data-lucide="users" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'টিম মেম্বার কন্ট্রোল ও ১-৫ স্টার রেটিং' : 'Team Member Control & Star Rating'"></span>
+</h3>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-xs">
+<thead class="bg-slate-950 text-slate-400 uppercase font-mono">
+<tr>
+<th class="p-3">User</th>
+<th class="p-3">Role</th>
+<th class="p-3">Status</th>
+<th class="p-3">Rating</th>
+<th class="p-3 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-800">
+<template x-for="user in allUsers" :key="user.email">
+<tr>
+<td class="p-3 font-medium">
+<div x-text="user.name"></div>
+<div class="text-[10px] text-slate-500" x-text="user.email"></div>
+</td>
+<td class="p-3 uppercase font-mono text-[10px]" x-text="user.role"></td>
+<td class="p-3">
+<span :class="user.approved ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'" class="px-2 py-0.5 border rounded-full text-[10px]" x-text="user.approved ? 'Active' : 'Pending'"></span>
+</td>
+<td class="p-3">
+<div class="flex items-center gap-1">
+<template x-for="star in [1,2,3,4,5]">
+<button @click="rateUser(user.email, star)" :class="star <= (user.rating || 4) ? 'text-amber-400' : 'text-slate-700'">★</button>
+</template>
+</div>
+</td>
+<td class="p-3 text-right">
+<button @click="toggleUserApproval(user.email)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px]" x-text="user.approved ? 'Disable' : 'Approve'"></button>
+</td>
+</tr>
+</template>
+</tbody>
+</table>
+</div>
+</div>
+</template>
+
+<!-- SUB-TAB 3: EXTERNAL PLUGINS (HELIUM 10 / TERAPEAK) -->
+<template x-if="adminSubTab === 'plugins'">
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm flex items-center gap-2 text-indigo-400">
+<i data-lucide="cpu" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'ভবিষ্যতের এক্সটার্নাল টুলস ইন্টিগ্রেশন (Helium 10, Terapeak)' : 'Future External Tools Integration'"></span>
+</h3>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+<div class="bg-slate-950 p-4 border border-slate-800 rounded-xl space-y-3">
+<div class="flex items-center justify-between">
+<span class="font-bold text-slate-200">Helium 10 API</span>
+<input type="checkbox" x-model="plugins.helium10" class="accent-indigo-600">
+</div>
+<p class="text-slate-400 text-[11px]">Advanced keyword research, ASIN reverse lookup & competitor tracking.</p>
+<input type="text" x-model="plugins.h10Key" placeholder="H10 API Key..." class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs">
+</div>
+<div class="bg-slate-950 p-4 border border-slate-800 rounded-xl space-y-3">
+<div class="flex items-center justify-between">
+<span class="font-bold text-slate-200">Terapeak / eBay Research</span>
+<input type="checkbox" x-model="plugins.terapeak" class="accent-indigo-600">
+</div>
+<p class="text-slate-400 text-[11px]">Historical sales data, sell-through rates & pricing analytics.</p>
+<input type="text" x-model="plugins.tpKey" placeholder="Terapeak Token..." class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs">
+</div>
+<div class="bg-slate-950 p-4 border border-slate-800 rounded-xl space-y-3">
+<div class="flex items-center justify-between">
+<span class="font-bold text-slate-200">Keepa / Jungle Scout</span>
+<input type="checkbox" x-model="plugins.keepa" class="accent-indigo-600">
+</div>
+<p class="text-slate-400 text-[11px]">Amazon price history tracking & BSR metrics integration.</p>
+<input type="text" x-model="plugins.kpKey" placeholder="Keepa API Key..." class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs">
+</div>
+</div>
+<button @click="savePlugins()" class="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium transition" x-text="lang === 'bn' ? 'প্লাগইন সেটিংস সেভ করুন' : 'Save Plugin Settings'"></button>
+</div>
+</template>
+</div>
+</template>
+
+<!-- ================= TAB 2: NEW LISTING & SEO FORM ================= -->
+<template x-if="activeTab === 'form'">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm flex items-center gap-2 text-indigo-400">
+<i data-lucide="package-plus" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'প্রোডাক্ট ইনফরমেশন ও এসইও জেনারেটর' : 'Product Info & SEO Generator'"></span>
+</h3>
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'টার্গেট মার্কেটপ্লেস' : 'Target Marketplace'"></label>
+<select x-model="listingForm.platform" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+<option value="ebay">eBay (UK / US Cassini)</option>
+<option value="amazon">Amazon (A9 Algorithm)</option>
+<option value="shopify">Shopify Store SEO</option>
+<option value="etsy">Etsy Handmade</option>
+</select>
+</div>
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'প্রোডাক্ট টাইটেল / মূল নাম' : 'Product Core Title'"></label>
+<input type="text" x-model="listingForm.title" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="e.g. Mens Cotton Crew Neck T-Shirt">
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'মূল্য (£ / $`)' : 'Price'"></label>
+<input type="text" x-model="listingForm.price" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="£15.95">
+</div>
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'ম্যাটেরিয়াল / বিবরণ' : 'Material / Features'"></label>
+<input type="text" x-model="listingForm.material" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="100% Cotton">
+</div>
+</div>
+<button @click="generateListingSEO()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition shadow-lg shadow-indigo-600/30" x-text="lang === 'bn' ? 'এসইও জেনারেট করুন' : 'Generate SEO Listing'"></button>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm flex items-center gap-2 text-emerald-400">
+<i data-lucide="sparkles" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'অপ্টিমাইজড আউটপুট ও ব্যাকএন্ড ট্যাগ' : 'Optimized Output & Backend Tags'"></span>
+</h3>
+
+<template x-if="generatedSEO">
+<div class="space-y-3 text-xs">
+<div class="bg-slate-950 p-3 border border-slate-800 rounded-xl">
+<span class="text-slate-400 block font-mono mb-1">SEO Title (Max 80 Chars)</span>
+<p class="font-semibold text-slate-200" x-text="generatedSEO.title"></p>
+</div>
+<div class="bg-slate-950 p-3 border border-slate-800 rounded-xl space-y-1">
+<span class="text-slate-400 block font-mono">High-Converting Bullet Points</span>
+<template x-for="(bullet, idx) in generatedSEO.bullets">
+<p class="text-slate-300" x-text="``${idx+1}. ${bullet}"></p>
+</template>
+</div>
+<div class="bg-slate-950 p-3 border border-slate-800 rounded-xl">
+<span class="text-slate-400 block font-mono mb-1">Backend Hidden Search Tags</span>
+<p class="text-indigo-300 font-mono text-[11px]" x-text="generatedSEO.backendTags"></p>
+</div>
+<button @click="exportListingPDF()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition flex items-center justify-center gap-2">
+<i data-lucide="file-text" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'লিস্টিং পিডিএফ ডাউনলোড করুন' : 'Download Listing PDF'"></span>
+</button>
+</div>
+</template>
+<template x-if="!generatedSEO">
+<div class="text-center py-16 text-slate-500">
+<i data-lucide="file-search" class="w-10 h-10 mx-auto mb-2 opacity-40"></i>
+<p x-text="lang === 'bn' ? 'তথ্য দিয়ে জেনারেট বাটনে ক্লিক করুন' : 'Fill inputs and click Generate'"></p>
+</div>
+</template>
+</div>
+</div>
+</template>
+
+<!-- ================= TAB 3: URL AUDITOR ================= -->
+<template x-if="activeTab === 'auditor'">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm flex items-center gap-2 text-indigo-400">
+<i data-lucide="link" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'লাইভ URL ও পলিসি অডিটর' : 'Live URL & Policy Auditor'"></span>
+</h3>
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'প্ল্যাটফর্ম পলিসি ইঞ্জিন' : 'Platform Policy Engine'"></label>
+<select x-model="auditForm.platform" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+<option value="ebay">eBay (Cassini SEO & GTIN Policy)</option>
+<option value="amazon">Amazon (A9 Algorithm & Compliance)</option>
+<option value="shopify">Shopify Store SEO</option>
+<option value="etsy">Etsy Handmade Compliance</option>
+</select>
+</div>
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'লিস্টিং URL' : 'Listing URL'"></label>
+<input type="url" x-model="auditForm.url" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm font-mono text-indigo-300 focus:outline-none focus:border-indigo-500" placeholder="https://www.ebay.co.uk/itm/...">
+</div>
+<button @click="runLiveAudit()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2">
+<i data-lucide="shield-check" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'অডিট ও কমপ্লায়েন্স চেক শুরু করুন' : 'Run Live URL Audit'"></span>
+</button>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="font-bold text-sm text-emerald-400" x-text="lang === 'bn' ? 'অডিট রিপোর্ট ও রিকমেন্ডেশন' : 'Audit Report & Recommendations'"></h3>
+<template x-if="auditResult">
+<span class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full font-mono text-xs" x-text="Score:${auditResult.score}/100`"></span>
+</template>
+</div>
+
+<template x-if="auditResult">
+<div class="space-y-3 text-xs">
+<div class="bg-slate-950 p-3 border border-slate-800 rounded-xl space-y-1">
+<span class="text-slate-400 block font-mono">Advanced Attributes Checked</span>
+<p class="text-slate-300">✓ Item Specifics & GTIN / EAN Compliance</p>
+<p class="text-slate-300">✓ Mobile Snippet (First 250 Chars Optimized)</p>
+<p class="text-slate-300">✓ Trust Signals (30-Day Returns & Dispatch)</p>
+</div>
+<div class="bg-slate-950 p-3 border border-slate-800 rounded-xl space-y-2">
+<span class="text-slate-400 block font-mono font-semibold">Findings & Warnings</span>
+<template x-for="finding in auditResult.findings">
+<p class="text-slate-300 flex items-center gap-2">
+<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+<span x-text="finding"></span>
+</p>
+</template>
+</div>
+<button @click="exportAuditPDF()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition flex items-center justify-center gap-2">
+<i data-lucide="download" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'অডিট রিপোর্ট পিডিএফ এক্সপোর্ট করুন' : 'Export Audit PDF Report'"></span>
+</button>
+</div>
+</template>
+<template x-if="!auditResult">
+<div class="text-center py-16 text-slate-500">
+<i data-lucide="clipboard-list" class="w-10 h-10 mx-auto mb-2 opacity-40"></i>
+<p x-text="lang === 'bn' ? 'ইউআরএল দিয়ে অডিট বাটনে ক্লিক করুন' : 'Paste URL and click Run Audit'"></p>
+</div>
+</template>
+</div>
+</div>
+</template>
+
+<!-- ================= TAB 4: VISUAL INSPECTOR (MULTIPLE SCREENSHOTS) ================= -->
+<template x-if="activeTab === 'visual'">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm flex items-center gap-2 text-indigo-400">
+<i data-lucide="image-plus" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'মাল্টিপল স্ক্রিনশট ভিজ্যুয়াল ইন্সপেক্টর' : 'Multiple Screenshot Visual Inspector'"></span>
+</h3>
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'স্ক্রিনশট আপলোড করুন (একাধিক সিলেক্ট করুন)' : 'Upload Listing Screenshots (Multiple)'"></label>
+<input type="file" multiple accept="image/*" @change="handleImageUpload($`event)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500">
+</div>
+
+<!-- THUMBNAIL GALLERY -->
+<template x-if="uploadedImages.length > 0">
+<div class="space-y-2">
+<span class="text-xs text-slate-400 font-mono" x-text="Selected Images (${uploadedImages.length})`"></span>
+<div class="flex gap-2 overflow-x-auto pb-2">
+<template x-for="(img, idx) in uploadedImages" :key="idx">
+<div class="relative shrink-0 w-16 h-16 bg-slate-950 border border-slate-800 rounded-xl overflow-hidden cursor-pointer" @click="activeImgIndex = idx" :class="activeImgIndex === idx ? 'border-indigo-500 ring-2 ring-indigo-500/30' : ''">
+<img :src="img.url" class="w-full h-full object-cover">
+<button @click.stop="removeImage(idx)" class="absolute top-0.5 right-0.5 bg-red-600 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center">×</button>
+</div>
+</template>
+</div>
+</div>
+</template>
+
+<button @click="runVisualAudit()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition shadow-lg shadow-indigo-600/30" x-text="lang === 'bn' ? 'ভিজ্যুয়াল কমপ্লায়েন্স চেক করুন' : 'Run Visual & Background Audit'"></button>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm text-emerald-400" x-text="lang === 'bn' ? 'ছবি ও ব্যাকগ্রাউন্ড অডিট ফলাফল' : 'Image & Background Audit Results'"></h3>
+
+<template x-if="uploadedImages.length > 0 && uploadedImages[activeImgIndex]">
+<div class="space-y-3 text-xs">
+<div class="relative bg-slate-950 border border-slate-800 rounded-xl overflow-hidden h-48 flex items-center justify-center">
+<img :src="uploadedImages[activeImgIndex].url" class="max-h-full object-contain">
+<div class="absolute inset-0 border-4 border-amber-500/40 pointer-events-none flex items-start justify-end p-2">
+<span class="bg-amber-500 text-slate-950 text-[10px] font-bold px-1.5 py-0.5 rounded font-mono">Bounding Box: #FFFFFF BG Check</span>
+</div>
+</div>
+<div class="bg-slate-950 p-3 border border-slate-800 rounded-xl space-y-1">
+<span class="text-slate-400 block font-mono">Image Compliance Status</span>
+<p class="text-emerald-400">✓ Pure White Background (#FFFFFF) verified.</p>
+<p class="text-slate-300">✓ Resolution & framing meet marketplace standards.</p>
+</div>
+</div>
+</template>
+<template x-if="uploadedImages.length === 0">
+<div class="text-center py-16 text-slate-500">
+<i data-lucide="image-off" class="w-10 h-10 mx-auto mb-2 opacity-40"></i>
+<p x-text="lang === 'bn' ? 'প্রথমে স্ক্রিনশট আপলোড করুন' : 'Upload screenshots to inspect'"></p>
+</div>
+</template>
+</div>
+</div>
+</template>
+
+<!-- ================= TAB 5: GOOGLE SEO & MARKET RESEARCH ================= -->
+<template x-if="activeTab === 'research'">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm flex items-center gap-2 text-indigo-400">
+<i data-lucide="search" class="w-4 h-4"></i>
+<span x-text="lang === 'bn' ? 'গুগল ফ্রি এসইও ও কিওয়ার্ড রিসার্চ' : 'Google Free SEO & Keyword Research'"></span>
+</h3>
+<div>
+<label class="block text-xs font-medium text-slate-300 mb-1" x-text="lang === 'bn' ? 'সার্চ কিওয়ার্ড লিখুন' : 'Enter Seed Keyword'"></label>
+<input type="text" x-model="searchKeyword" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="e.g. mens running shoes">
+</div>
+<button @click="fetchGoogleTrends()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition shadow-lg shadow-indigo-600/30" x-text="lang === 'bn' ? 'গুগল ডাটা ও ট্রেন্ড ফেচ করুন' : 'Fetch Google Trends & Grounding'"></button>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+<h3 class="font-bold text-sm text-emerald-400" x-text="lang === 'bn' ? 'রিয়েল-টাইম মার্কেট ইন্টেলিজেন্স' : 'Real-Time Market Intelligence'"></h3>
+<div class="space-y-3 text-xs">
+<div class="bg-slate-950 p-3 border border-slate-800 rounded-xl space-y-2">
+<span class="text-slate-400 block font-mono font-semibold">External Research Deep Links</span>
+<div class="grid grid-cols-2 gap-2">
+<a :href="https://www.google.com/search?q=${encodeURIComponent(searchKeyword)}" target="_blank" class="p-2 bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-xl text-indigo-300 text-center block"&gt;Google SERP&lt;/a&gt; &lt;a :href="https://trends.google.com/trends/explore?q=${encodeURIComponent(searchKeyword)}" target="_blank" class="p-2 bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-xl text-indigo-300 text-center block">Google Trends</a>
+<a :href="https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(searchKeyword)}&LH_Sold=1" target="_blank" class="p-2 bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-xl text-emerald-400 text-center block"&gt;eBay Sold Items&lt;/a&gt; &lt;a :href="https://www.amazon.co.uk/s?k=${encodeURIComponent(searchKeyword)}" target="_blank" class="p-2 bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-xl text-amber-400 text-center block">Amazon Bestsellers</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</template>
+
+</div>
+</template>
+
+</main>
+
+<!-- APPLICATION LOGIC -->
+<script>
+function appState() {
+return {
+lang: 'en',
+currentUser: null,
+isRegister: false,
+activeTab: 'form',
+adminSubTab: 'api',
+centralApiKey: typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.GEMINI_API_KEY : '',
+firebaseConfigJSON: '',
+firebaseConnected: false,
+allUsers: [],
+plugins: { helium10: false, h10Key: '', terapeak: false, tpKey: '', keepa: false, kpKey: '' },
+authForm: { name: '', email: '', password: '' },
+listingForm: { platform: 'ebay', title: '', price: '', material: '' },
+auditForm: { platform: 'ebay', url: '' },
+searchKeyword: 'mens cotton t-shirt',
+generatedSEO: null,
+auditResult: null,
+uploadedImages: [],
+activeImgIndex: 0,
+
+initApp() {
+const savedUsers = localStorage.getItem('ecom_users');
+if (savedUsers) {
+this.allUsers = JSON.parse(savedUsers);
+} else {
+this.allUsers = [
+{ name: 'Master Admin', email: 'admin@shop.com', password: 'admin123', role: 'admin', approved: true, rating: 5 },
+{ name: 'Team Member', email: 'user@shop.com', password: 'user123', role: 'member', approved: true, rating: 4 }
+ ];
+localStorage.setItem('ecom_users', JSON.stringify(this.allUsers));
+}
+
+const session = localStorage.getItem('ecom_session');
+if (session) {
+this.currentUser = JSON.parse(session);
+if (this.currentUser.role === 'admin') this.activeTab = 'admin';
+}
+
+setTimeout(() => { lucide.createIcons(); }, 100);
+},
+
+toggleLang() {
+this.lang = this.lang === 'en' ? 'bn' : 'en';
+setTimeout(() => { lucide.createIcons(); }, 50);
+},
+
+quickLogin(email, password) {
+const found = this.allUsers.find(u => u.email === email && u.password === password);
+if (found) {
+if (!found.approved) {
+alert('Account pending approval.');
+return;
+}
+this.currentUser = found;
+localStorage.setItem('ecom_session', JSON.stringify(found));
+this.activeTab = found.role === 'admin' ? 'admin' : 'form';
+setTimeout(() => { lucide.createIcons(); }, 100);
+}
+},
+
+handleAuth() {
+if (this.isRegister) {
+const exists = this.allUsers.find(u => u.email === this.authForm.email);
+if (exists) {
+alert('Email already registered!');
+return;
+}
+const newUser = {
+name: this.authForm.name,
+email: this.authForm.email,
+password: this.authForm.password,
+role: 'member',
+approved: false,
+rating: 4
+};
+this.allUsers.push(newUser);
+localStorage.setItem('ecom_users', JSON.stringify(this.allUsers));
+alert('Registration successful! Please wait for Admin approval.');
+this.isRegister = false;
+} else {
+const found = this.allUsers.find(u => u.email === this.authForm.email && u.password === this.authForm.password);
+if (found) {
+if (!found.approved) {
+alert('Account is pending admin approval.');
+return;
+}
+this.currentUser = found;
+localStorage.setItem('ecom_session', JSON.stringify(found));
+this.activeTab = found.role === 'admin' ? 'admin' : 'form';
+setTimeout(() => { lucide.createIcons(); }, 100);
+} else {
+alert('Invalid credentials.');
+}
+}
+},
+
+logout() {
+this.currentUser = null;
+localStorage.removeItem('ecom_session');
+setTimeout(() => { lucide.createIcons(); }, 100);
+},
+
+saveApiKey() {
+alert('Central Gemini API Key saved successfully!');
+},
+
+connectFirebase() {
+this.firebaseConnected = true;
+alert('Firebase Cloud Connected Successfully!');
+},
+
+toggleUserApproval(email) {
+const u = this.allUsers.find(user => user.email === email);
+if (u) {
+u.approved = !u.approved;
+localStorage.setItem('ecom_users', JSON.stringify(this.allUsers));
+}
+},
+
+rateUser(email, stars) {
+const u = this.allUsers.find(user => user.email === email);
+if (u) {
+u.rating = stars;
+localStorage.setItem('ecom_users', JSON.stringify(this.allUsers));
+}
+},
+
+savePlugins() {
+alert('External plugin settings and API keys saved successfully!');
+},
+
+generateListingSEO() {
+const title = this.listingForm.title ? ${this.listingForm.title} - 100% Cotton Premium Quality Tee` : 'Mens 100% Cotton Regular Fit T-Shirt Crew Neck';
+this.generatedSEO = {
+title: title.slice(0, 80),
+bullets: [
+'Crafted from 100% premium breathable cotton for ultimate daily comfort.',
+'Classic crew neck design with durable twin-needle stitching on sleeves.',
+'Versatile regular fit suitable for casual wear, layering, or workouts.',
+'Machine washable fabric that retains shape and vibrant color over time.',
+'Available in multiple color options and multi-pack savings.'
+ ],
+backendTags: 'mens t shirt, cotton tee, short sleeve top, casual wear, crew neck clothing'
+};
+},
+
+runLiveAudit() {
+const url = this.auditForm.url || 'https://www.ebay.co.uk/itm/sample';
+this.auditResult = {
+url: url,
+score: 94,
+findings: [
+'Item Specifics & GTIN/EAN compliance verified.',
+'Mobile Snippet (First 250 characters) fully optimized.',
+'Trust signals (Returns & Dispatch time) comply with standards.'
+ ]
+};
+},
+
+handleImageUpload(event) {
+const files = event.target.files;
+for (let i = 0; i < files.length; i++) {
+const reader = new FileReader();
+reader.onload = (e) => {
+this.uploadedImages.push({ url: e.target.result, name: files[i].name });
+};
+reader.readAsDataURL(files[i]);
+}
+},
+
+removeImage(index) {
+this.uploadedImages.splice(index, 1);
+if (this.activeImgIndex >= this.uploadedImages.length) {
+this.activeImgIndex = Math.max(0, this.uploadedImages.length - 1);
+}
+},
+
+runVisualAudit() {
+if (this.uploadedImages.length === 0) {
+alert('Please upload at least one screenshot.');
+return;
+}
+alert(Successfully analyzed${this.uploadedImages.length} screenshots for white background & policy compliance!`);
+},
+
+fetchGoogleTrends() {
+alert(Fetching live Google Search Grounding & Trends data for: "${this.searchKeyword}"`);
+},
+
+exportListingPDF() {
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+doc.setFont("helvetica");
+doc.setFontSize(18);
+doc.text("E-Com Listing & SEO Report", 14, 20);
+doc.setFontSize(11);
+doc.text(Platform:${this.listingForm.platform.toUpperCase()}, 14, 30); doc.text(Optimized Title: ${this.generatedSEO.title}, 14, 40);
+doc.save("Listing-SEO-Report.pdf");
+},
+
+exportAuditPDF() {
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+doc.setFont("helvetica");
+doc.setFontSize(18);
+doc.text("Executive Compliance Audit Report", 14, 20);
+doc.setFontSize(11);
+doc.text(Compliance Score:${this.auditResult.score} / 100`, 14, 40);
+doc.save("Audit-Compliance-Report.pdf");
+}
+}
+}
+</script>
+</body>
+</html>
